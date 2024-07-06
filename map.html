@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tileMap</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<script>
+    let tileMap = [
+        "################",
+        "#              #",
+        "#              #",
+        "#              #",
+        "#              #",
+        "#     ####     #",
+        "#              #",
+        "#          #####",
+        "################",
+    ].map(line => line.split("").map(token => token === "#" ? 1 : 0));
+
+    let mapHeight = tileMap.length;
+    let mapWidth = tileMap[0].length;
+    let tileSize = 32;
+
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+    
+    document.body.insertBefore(canvas, document.body.childNodes[0]);
+
+    canvas.width = mapWidth * tileSize;
+    canvas.height = mapHeight * tileSize;
+
+    keys = {
+        37: false,
+        38: false,
+        39: false,
+    };
+
+    document.addEventListener('keydown', e => keys[e.keyCode] = true);
+    document.addEventListener('keyup', e => keys[e.keyCode] = false);
+
+    function clear() {
+        ctx.fillStyle = "#500014";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawMap(color) {
+        for (let x = 0; x < mapWidth; x++) {
+            for (let y = 0; y < mapHeight; y++) {
+                if (tileMap[y][x] == 0) continue;
+                ctx.fillStyle = color;
+                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            }
+        }
+    }
+
+    let player = new Player(100, 100, 32, 32, "red");
+
+    function update() {
+        player.canMove.check();
+        player.velX = 0;
+        if (player.canMove.down) player.velY += player.gravity;
+        if (player.canMove.right && keys[39]) player.velX = player.speed;
+        if (player.canMove.left && keys[37]) player.velX = -player.speed;
+        if (player.canMove.up && keys[38]) {
+            if (!player.jumping) {
+                player.jumping = true;
+                player.velY = -10;
+            }
+        }
+        player.move();
+    }
+
+    function render() {
+        clear();
+        ctx.save();
+        ctx.translate(-10, 10);
+        drawMap("#220002");
+        ctx.restore();
+        drawMap("#111111");
+        player.draw(ctx);
+    }
+
+    function getTile(x, y) {
+        if (y < 0 || y >= mapHeight || x < 0 || x >= mapWidth) return 1;
+        return tileMap[y][x];
+    }
+
+    function Player(x, y, width, height, color) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.color = color;
+        this.jumping = false;
+        this.gravity = 0.5;
+        this.speed = 5;
+        this.velX = 0;
+        this.velY = 0;
+        this.canMove = {
+            left: true,
+            right: true,
+            up: true,
+            down: true,
+            actor: this,
+            clear() {
+                this.left = true;
+                this.right = true;
+                this.up = true;
+                this.down = true;
+            },
+            check() {
+                this.clear();
+                let x = this.actor.x | 0;
+                let y = this.actor.y | 0;
+                let tileX = x / tileSize | 0;
+                let tileY = y / tileSize | 0;
+
+                if (x % tileSize === 0) {
+                    if (getTile(tileX - 1, tileY) === 1) this.left = false;
+                    if (getTile(tileX + 1, tileY) === 1) this.right = false;
+                }
+                if (y % tileSize === 0) {
+                    if (getTile(tileX, tileY - 1) === 1) this.up = false;
+                    if (getTile(tileX, tileY + 1) === 1) this.down = false;
+                }
+            }
+        };
+        this.draw = function(ctx) {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        };
+        this.move = function () {
+            let x = this.x;
+            let y = this.y;
+            let vx = this.velX;
+            let vy = this.velY;
+            let v = Math.sqrt(vx * vx + vy * vy);
+            if (v > 0) {
+                vx /= v;
+                vy /= v;
+                for (let i = 0; i < v; i++) {
+                    let xx = (x + vx * i) | 0;
+                    let yy = (y + vy * i) | 0;
+                    let tileX = xx / tileSize | 0;
+                    let tileY = yy / tileSize | 0;
+                    if (vy > 0) {
+                        if (getTile(tileX, tileY + 1) == 1 || (xx % tileSize !== 0 && getTile(tileX + 1, tileY + 1))) {
+                            this.velY = vy = 0;
+                            this.y = y = tileY * tileSize;
+                            this.jumping = false;
+                        }
+                    } else if (vy < 0) {
+                        if (getTile(tileX, tileY) === 1  || (xx % tileSize !== 0 && getTile(tileX + 1, tileY))) {
+                            tileY += 1;
+                            this.y = y = tileY * tileSize;
+                            this.velY = vy = 0;
+                        }
+                    }
+                    if (vx > 0 && getTile(tileX + 1, tileY) === 1 || (yy % tileSize !== 0 && getTile(tileX + 1, tileY + 1))) {
+                        this.x = x = tileX * tileSize;
+                        this.velX = vx = 0;
+                    } else if (vx < 0 && getTile(tileX, tileY) === 1 || (yy % tileSize !== 0 && getTile(tileX, tileY + 1))) {
+                        this.x = x = (tileX + 1) * tileSize;
+                        this.velX = vx = 0;
+                    }
+                }
+                this.x += this.velX;
+                this.y += this.velY;
+            }
+        };
+    }
+
+    function mainLoop() {
+        update();
+        render();
+        requestAnimationFrame(mainLoop);
+    }
+
+    requestAnimationFrame(mainLoop);
+
+</script>
+</body>
+</html>

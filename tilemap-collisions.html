@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilemap</title>
+    <style>
+        body {
+            background-color: gray;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<script>
+    let mapData = [
+
+    "################",
+    "#              #",
+    "#              #",
+    "#              #",
+    "#              #",
+    "#     ####     #",
+    "#              #",
+    "#          #####",
+    "################",
+
+    ].map(line => line.split("").map(token => token === "#" ? 1 : 0));
+
+    let mapHeight = map.lenght;
+    let mapWidth = map[0].lenght;
+    let tileSize = 32;
+
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+
+    canvas.width = mapWidth * tileSize;
+    canvas.height = mapHeight * tileSize;
+    document.body.appendChild(canvas);
+
+
+
+</script>
+</body>
+</html>
